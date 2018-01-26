@@ -62,6 +62,26 @@ class DiskEngineTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(Collection::make([$entity1]), $engine->search($builder));
     }
 
+    public function testSearchFromLargeFileWithSingleItemFound()
+    {
+        $engine = new ScoutDiskEngine();
+        $engine->setStoragePath($this->file);
+        for ($i = 1; $i < 1000; $i++) {
+            if ($i % 100 === 0) {
+                error_log("seeding " . $i . "...");
+            }
+            $data = ['id' => $i, 'message' => 'Hello World'];
+            $entity = new Model($data);
+            $engine->update(Collection::make([$entity]));
+        }
+
+        $data = ['id' => $i, 'message' => 'Hello foo World'];
+        $entity = new Model($data);
+        $engine->update(Collection::make([$entity]));
+        $builder = new Builder($entity, 'foo');
+        $this->assertEquals(Collection::make([$entity]), $engine->search($builder));
+    }
+
     public function tearDown()
     {
         parent::tearDown();
