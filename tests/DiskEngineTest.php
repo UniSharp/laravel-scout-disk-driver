@@ -22,65 +22,130 @@ class DiskEngineTest extends \PHPUnit\Framework\TestCase
         parent::setUp();
     }
 
-    public function xtestUpdateIndex()
+    public function testUpdateIndex()
     {
         $data = ['id' => 1, 'message' => 'Hello World'];
         $entity = new Model($data);
         $engine = new ScoutDiskEngine();
         $engine->setStoragePath($this->file);
 
-        $engine->update(Collection::make([$entity]));
+        $this->assertTrue($engine->update(Collection::make([$entity])));
     }
 
-    public function testSearchWithinSingleItemAndFound()
+    public function testFullTextSearchWithinSingleItemFound()
     {
+        $searchTerm = 'llo';
         $engine = new ScoutDiskEngine();
         $engine->setStoragePath($this->file);
 
-        // single item, single match
-        $data = ['id' => 1, 'message' => 'Hello World'];
-        $entity = new Model($data);
-        $engine->update(Collection::make([$entity]));
-        $builder = new Builder($entity, 'llo');
-        $this->assertEquals(Collection::make([$entity])->toArray(), $engine->search($builder)->toArray());
+        $input = [
+            new Model(['id' => 1, 'message' => 'Hello']),
+            new Model(['id' => 2, 'message' => 'ok'])
+        ];
+        $engine->update(Collection::make($input));
+        $builder = new Builder(new Model(), $searchTerm);
+        $this->assertEquals(Collection::make([$input[0]]), $engine->search($builder));
     }
 
-    public function testSearchWithinMultipleItemsAndFound()
+    public function testFullTextSearchWithinMultipleItemsAndFoundWithCorrectRank()
     {
+        $searchTerm = 'llo';
         $engine = new ScoutDiskEngine();
         $engine->setStoragePath($this->file);
 
-        // multie item, single match
-        $data = ['id' => 1, 'message' => 'Hello World'];
-        $entity1 = new Model($data);
-        $data = ['id' => 2, 'message' => 'Hell World'];
-        $entity2 = new Model($data);
+        $input = [
+            new Model(['id' => 1, 'message' => 'Hell World']),
+            new Model(['id' => 2, 'message' => 'Hello World']),
+            new Model(['id' => 3, 'message' => 'Joy']),
+        ];
 
-        $engine->update(Collection::make([$entity1, $entity2]));
+        $expected = [
+            new Model(['id' => 2, 'message' => 'Hello World']),
+            new Model(['id' => 1, 'message' => 'Hell World']),
+        ];
 
-        $builder = new Builder($entity1, 'llo');
-        $this->assertEquals(Collection::make([$entity1]), $engine->search($builder));
+        $engine->update(Collection::make($input));
+        $builder = new Builder(new Model(), $searchTerm);
+        $this->assertEquals(Collection::make($expected), $engine->search($builder));
     }
 
-    public function testSearchFromLargeFileWithSingleItemFound()
+    public function testFullTextSearchFromLargeFileWithSingleItemFound()
     {
+        $searchTerm = 'foo';
         $engine = new ScoutDiskEngine();
         $engine->setStoragePath($this->file);
+        $collection = new Collection();
         for ($i = 1; $i < 1000; $i++) {
-            if ($i % 100 === 0) {
-                error_log("seeding " . $i . "...");
-            }
             $data = ['id' => $i, 'message' => 'Hello World'];
-            $entity = new Model($data);
-            $engine->update(Collection::make([$entity]));
+            $collection->push(new Model($data));
         }
+        error_log('indexing...');
+        $timeIndexingStart = microtime(true);
+        $engine->update($collection);
+        error_log('indexing... done by ' . (microtime(true) - $timeIndexingStart));
+
 
         $data = ['id' => $i, 'message' => 'Hello foo World'];
         $entity = new Model($data);
         $engine->update(Collection::make([$entity]));
-        $builder = new Builder($entity, 'foo');
+        $builder = new Builder($entity, $searchTerm);
+        error_log('searching...');
+        $timeSearchingStart = microtime(true);
         $this->assertEquals(Collection::make([$entity]), $engine->search($builder));
+        error_log('searching... done by ' . (microtime(true) - $timeSearchingStart));
     }
+
+    public function testSearchRanking()
+    {
+        $engine = new ScoutDiskEngine();
+        $engine->setStoragePath($this->file);
+
+        $data[0] = ['id' => 1, 'message' => 'A cat is running'];
+        $data[1] = ['id' => 2, 'message' => 'A dog is running'];
+        $data[2] = ['id' => 3, 'message' => 'A car tool'];
+
+        $searchTerm = 'cat';
+
+        $expectedResultWithRanking[0] = new Model($data[0]); // cat
+        $expectedResultWithRanking[1] = new Model($data[2]); // car
+
+
+        $inputCollection = new Collection();
+        foreach ($data as $item) {
+            $inputCollection->push(new Model($item));
+        }
+
+        $engine->update($inputCollection);
+
+        $builder = new Builder(new Model(), $searchTerm);
+        $this->assertEquals(Collection::make($expectedResultWithRanking), $engine->search($builder));
+    }
+
+    // public function testSearchRankingAgain()
+    // {
+    //     $engine = new ScoutDiskEngine();
+    //     $engine->setStoragePath($this->file);
+
+    //     $data[0] = ['id' => 1, 'message' => 'A cat is running'];
+    //     $data[1] = ['id' => 2, 'message' => 'A dog is running'];
+    //     $data[2] = ['id' => 3, 'message' => 'A car tool'];
+
+    //     $searchTerm = 'car';
+
+    //     $expectedResultWithRanking[0] = new Model($data[2]); // car
+    //     $expectedResultWithRanking[1] = new Model($data[0]); // cat
+
+
+    //     $inputCollection = new Collection();
+    //     foreach ($data as $item) {
+    //         $inputCollection->push(new Model($item));
+    //     }
+
+    //     $engine->update($inputCollection);
+
+    //     $builder = new Builder(new Model(), $searchTerm);
+    //     $this->assertEquals(Collection::make($expectedResultWithRanking), $engine->search($builder));
+    // }
 
     public function tearDown()
     {

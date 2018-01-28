@@ -20,7 +20,8 @@ class TestModel extends Model
 
     public function toSearchableArray()
     {
-        return [];
+        // FIXME fill only searchable fields
+        return $this->toArray();
     }
 
     public function scoutMetadata()
