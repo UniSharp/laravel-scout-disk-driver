@@ -105,7 +105,8 @@ class ScoutDiskEngine extends \Laravel\Scout\Engines\Engine
                     $invertedIndex[$token][] = [
                         'id' => $arr['id'],
                         'field' => $k,
-                        'offset' => $offset
+                        'offset' => $offset,
+                        'token_source' => $v, // FIXME debug only. REMOVE ME
                     ];
                 }
             }
@@ -161,6 +162,8 @@ class ScoutDiskEngine extends \Laravel\Scout\Engines\Engine
                 $matchedIds[$id]++;
             }
         }
+
+        // print_r($matchedInvertedIndex);
 
         // match 結果的數量要 >= token 數才算符合
         $matchedIds = array_filter($matchedIds, function ($matchedCount) use ($tokens) {
