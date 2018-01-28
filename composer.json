@@ -24,6 +24,7 @@
     },
     "require-dev": {
         "Mockery/Mockery": "^1.0",
+        "codedungeon/phpunit-result-printer": "^0.5.4",
         "mikey179/vfsStream": "^1.6",
         "phpunit/phpunit": ">=5.4.3",
         "squizlabs/php_codesniffer": "^3.2"

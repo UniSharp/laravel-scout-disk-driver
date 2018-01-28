@@ -79,20 +79,20 @@ class DiskEngineTest extends \PHPUnit\Framework\TestCase
             $data = ['id' => $i, 'message' => 'Hello World'];
             $collection->push(new Model($data));
         }
-        error_log('indexing...');
+
         $timeIndexingStart = microtime(true);
         $engine->update($collection);
-        error_log('indexing... done by ' . (microtime(true) - $timeIndexingStart));
+        // fwrite(STDERR, "Index: " . (microtime(true) - $timeIndexingStart) . "\n");
 
 
         $data = ['id' => $i, 'message' => 'Hello foo World'];
         $entity = new Model($data);
         $engine->update(Collection::make([$entity]));
         $builder = new Builder($entity, $searchTerm);
-        error_log('searching...');
+
         $timeSearchingStart = microtime(true);
         $this->assertEquals(Collection::make([$entity]), $engine->search($builder));
-        error_log('searching... done by ' . (microtime(true) - $timeSearchingStart));
+        // fwrite(STDERR, "Search: " . (microtime(true) - $timeSearchingStart) . "\n");
     }
 
     public function testSearchRanking()
