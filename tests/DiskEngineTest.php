@@ -47,6 +47,21 @@ class DiskEngineTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(Collection::make([$input[0]]), $engine->search($builder));
     }
 
+    public function testFullTextSearchWithinSingleItemFound2()
+    {
+        $searchTerm = 'llo';
+        $engine = new ScoutDiskEngine();
+        $engine->setStoragePath($this->file);
+
+        $input = [
+            new Model(['id' => 1, 'message' => 'Hello']),
+            new Model(['id' => 2, 'message' => 'ooooooook'])
+        ];
+        $engine->update(Collection::make($input));
+        $builder = new Builder(new Model(), $searchTerm);
+        $this->assertEquals(Collection::make([$input[0]]), $engine->search($builder));
+    }
+
     public function testFullTextSearchWithinMultipleItemsAndFoundWithCorrectRank()
     {
         $searchTerm = 'llo';
